@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import morgan from "morgan";
 import dotenv from "dotenv";
+import authRoutes from "./routes/auth.js";
 import db from "./db.js";
 
 dotenv.config();
@@ -13,13 +14,20 @@ app.use(cors());
 app.use(express.json());
 app.use(morgan("dev"));
 
+app.use("/api/auth", authRoutes);
 
 app.get("/", (req, res) => {
-    res.send("Cinema Appointment API is running");
+  res.send("Cinema Appointment API is running");
+});
+
+app.get("/api/health", (req, res) => {
+  res.json({
+    message: "Cinema Appointment API is running"
+  });
 });
 
 db.connect().then(() => {
-    app.listen(PORT, () => {
-        console.log(`Server running on http://localhost:${PORT}`);
-    });
+  app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+  });
 });
