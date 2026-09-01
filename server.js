@@ -9,6 +9,7 @@ import seatRoutes from "./routes/seats.js";
 import showtimeRoutes from "./routes/showtimes.js";
 import appointmentRoutes from "./routes/appointments.js";
 import userRoutes from "./routes/users.js";
+import tmdbRoutes from "./routes/tmdb.js";
 import db from "./db.js";
 
 dotenv.config();
@@ -27,6 +28,7 @@ app.use("/api/seats", seatRoutes);
 app.use("/api/showtimes", showtimeRoutes);
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/tmdb", tmdbRoutes);
 app.get("/", (req, res) => {
     res.send("Cinema Appointment API is running");
 });
