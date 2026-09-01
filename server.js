@@ -4,6 +4,7 @@ import morgan from "morgan";
 import dotenv from "dotenv";
 import authRoutes from "./routes/auth.js";
 import movieRoutes from "./routes/movies.js";
+import screenRoutes from "./routes/screen.js";
 import db from "./db.js";
 
 dotenv.config();
@@ -17,19 +18,20 @@ app.use(morgan("dev"));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/movies", movieRoutes);
+app.use("/api/screens", screenRoutes);
 
 app.get("/", (req, res) => {
-  res.send("Cinema Appointment API is running");
+    res.send("Cinema Appointment API is running");
 });
 
 app.get("/api/health", (req, res) => {
-  res.json({
-    message: "Cinema Appointment API is running"
-  });
+    res.json({
+        message: "Cinema Appointment API is running"
+    });
 });
 
 db.connect().then(() => {
-  app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
+    app.listen(PORT, () => {
+        console.log(`Server running on http://localhost:${PORT}`);
+    });
 });
