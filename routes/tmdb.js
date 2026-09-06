@@ -5,7 +5,27 @@ dotenv.config();
 
 const router = express.Router();
 
-// Search movies
+// GET /api/tmdb/popular - Trending / popular movies right now
+router.get("/popular", async (req, res) => {
+  try {
+    const response = await fetch(
+      "https://api.themoviedb.org/3/movie/popular?language=en-US&page=1",
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.TMDB_API_KEY}`,
+          accept: "application/json"
+        }
+      }
+    );
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ message: "TMDB popular request failed" });
+  }
+});
+
+
+// GET /api/tmdb/search?query=... - Search movies on TMDB
 router.get("/search", async (req, res) => {
   try {
     const { query } = req.query;
