@@ -125,25 +125,25 @@ router.put("/:id", adminAuth, async (req, res) => {
 
 router.delete("/:id", adminAuth, async (req, res) => {
   try {
-    const result = await db.query(
-      "DELETE FROM screens WHERE screen_id = $1 RETURNING *",
-      [req.params.id]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({
-        message: "Screen not found"
-      });
+    const scid = req.params.id;
+    // Delete appointment_seats → appointments → showtimes → seats → screen
+    const showtimes = await db.query("SELECT showtime_id FROM showtimes WHERE screen_id = $1", [scid]);
+    for (const st of showtimes.rows) {
+      const appts = await db.query("SELECT appointment_id FROM appointments WHERE showtime_id = $1", [st.showtime_id]);
+      for (const ap of appts.rows) {
+        await db.query("DELETE FROM appointment_seats WHERE appointment_id = $1", [ap.appointment_id]);
+      }
+      await db.query("DELETE FROM appointments WHERE showtime_id = $1", [st.showtime_id]);
     }
+    await db.query("DELETE FROM showtimes WHERE screen_id = $1", [scid]);
+    await db.query("DELETE FROM seats WHERE screen_id = $1", [scid]);
 
-    res.json({
-      message: "Screen deleted successfully"
-    });
+    const result = await db.query("DELETE FROM screens WHERE screen_id = $1 RETURNING *", [scid]);
+    if (result.rows.length === 0) return res.status(404).json({ message: "Screen not found" });
+    res.json({ message: "Screen deleted successfully" });
   } catch (error) {
     console.error(error);
-    res.status(500).json({
-      message: "Server error"
-    });
+    res.status(500).json({ message: "Server error" });
   }
 });
 

@@ -55,9 +55,19 @@ router.get("/:id", async (req, res) => {
 // Admin - add showtime
 
 router.post("/", adminAuth, async (req, res) => {
-  const { movie_id, screen_id, start_time, end_time } = req.body;
+  let { movie_id, screen_id, start_time, end_time } = req.body;
 
   try {
+    // If end_time not provided, calculate from movie duration
+    if (!end_time && start_time) {
+      const movieRes = await db.query("SELECT duration FROM movies WHERE movie_id = $1", [movie_id]);
+      const durationMins = movieRes.rows[0]?.duration || 120;
+      // Treat start_time as UTC (append Z if no timezone info)
+      const startStr = /Z|[+-]\d{2}:?\d{2}$/.test(start_time) ? start_time : start_time + ":00Z";
+      const endMs = new Date(startStr).getTime() + durationMins * 60000;
+      end_time = new Date(endMs).toISOString();
+    }
+
     const result = await db.query(
       `INSERT INTO showtimes
        (movie_id, screen_id, start_time, end_time)
@@ -115,23 +125,23 @@ router.put("/:id", adminAuth, async (req, res) => {
 
 router.delete("/:id", adminAuth, async (req, res) => {
   try {
-    const result = await db.query(
-      "DELETE FROM showtimes WHERE showtime_id = $1 RETURNING *",
-      [req.params.id]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ message: "Showtime not found" });
+    const sid = req.params.id;
+    // Delete appointment_seats → appointments → showtime
+    const appts = await db.query("SELECT appointment_id FROM appointments WHERE showtime_id = $1", [sid]);
+    for (const ap of appts.rows) {
+      await db.query("DELETE FROM appointment_seats WHERE appointment_id = $1", [ap.appointment_id]);
     }
+    await db.query("DELETE FROM appointments WHERE showtime_id = $1", [sid]);
 
-    res.json({
-      message: "Showtime deleted successfully"
-    });
+    const result = await db.query("DELETE FROM showtimes WHERE showtime_id = $1 RETURNING *", [sid]);
+    if (result.rows.length === 0) return res.status(404).json({ message: "Showtime not found" });
+    res.json({ message: "Showtime deleted successfully" });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error" });
   }
 });
+
 
 
 // GET /api/showtimes/:showtimeId/seats

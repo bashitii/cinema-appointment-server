@@ -156,25 +156,25 @@ router.put("/:id", adminAuth, async (req, res) => {
 
 router.delete("/:id", adminAuth, async (req, res) => {
   try {
-    const result = await db.query(
-      "DELETE FROM movies WHERE movie_id = $1 RETURNING *",
-      [req.params.id]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({
-        message: "Movie not found"
-      });
+    const mid = req.params.id;
+    // Get all showtimes for this movie
+    const showtimes = await db.query("SELECT showtime_id FROM showtimes WHERE movie_id = $1", [mid]);
+    for (const st of showtimes.rows) {
+      // Delete appointment seats, then appointments for each showtime
+      const appts = await db.query("SELECT appointment_id FROM appointments WHERE showtime_id = $1", [st.showtime_id]);
+      for (const ap of appts.rows) {
+        await db.query("DELETE FROM appointment_seats WHERE appointment_id = $1", [ap.appointment_id]);
+      }
+      await db.query("DELETE FROM appointments WHERE showtime_id = $1", [st.showtime_id]);
     }
+    await db.query("DELETE FROM showtimes WHERE movie_id = $1", [mid]);
 
-    res.json({
-      message: "Movie deleted successfully"
-    });
+    const result = await db.query("DELETE FROM movies WHERE movie_id = $1 RETURNING *", [mid]);
+    if (result.rows.length === 0) return res.status(404).json({ message: "Movie not found" });
+    res.json({ message: "Movie deleted successfully" });
   } catch (error) {
     console.error(error);
-    res.status(500).json({
-      message: "Server error"
-    });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
